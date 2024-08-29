@@ -1,0 +1,39 @@
+{
+  "name": "nugetlsp",
+  "version": "0.0.1",
+  "description": "language server protocol that provides nuget package related services for .csproj files",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "jest",
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kat-lego/nugetlsp.git"
+  },
+  "keywords": [
+    "lsp",
+    "nuget"
+  ],
+  "author": "katlego modupi",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kat-lego/nugetlsp/issues"
+  },
+  "homepage": "https://github.com/kat-lego/nugetlsp#readme",
+  "dependencies": {
+    "axios": "^1.7.4",
+    "tree-sitter": "^0.21.1",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.12",
+    "winston": "^3.14.2"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/node": "^22.5.0",
+    "test": "^3.3.0",
+    "ts-jest": "^29.2.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4"
+  }
+}
