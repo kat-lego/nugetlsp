@@ -1,6 +1,6 @@
-import * as winston from "winston";
-import * as os from 'os';
-import * as path from 'path';
+import winston from "winston";
+import os from 'os';
+import path from 'path';
 import {
   createConnection,
   ProposedFeatures,
@@ -8,7 +8,10 @@ import {
   TextDocumentSyncKind
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { statestore } from "./models";
+import { CSProjectFileSpec, NugetPackageMetaData } from "./models";
+import * as lex from "./csproj-lexer";
+import * as lsp from "./lsp-provider";
+import * as nuget from "./nuget-provider";
 
 const appName = 'nugetlsp';
 const tmpdir = path.join(os.tmpdir(), appName);
@@ -27,6 +30,8 @@ const logger = winston.createLogger({
 
 const connection = createConnection(ProposedFeatures.all);
 const documents = new TextDocuments(TextDocument);
+const D = {} as Record<string, CSProjectFileSpec>
+const N = {} as Record<string, NugetPackageMetaData>
 
 connection.onInitialize(() => {
 
@@ -51,35 +56,65 @@ connection.onInitialize(() => {
 });
 
 connection.onInitialized(() => {
-  logger.info("Initializing nuget language server protocol");
+  logger.info("Initialized nuget language server protocol");
 });
 
 documents.onDidOpen((event) => {
-  logger.info(`Document Opened | ${event.document.uri}`);
-})
+  logger.info(`Document Opened | %docUri`, event.document.uri);
+  const doc = lex.initializeCsProj(event.document.getText(), event.document.uri, logger);
+  D[event.document.uri] = doc;
 
-documents.onDidChangeContent((event) => {
-  logger.info(`Document Opened | ${event.document.uri}`);
-})
+  doc.packageReferences.forEach(x => {
+    const p = x.packageName.value;
 
-connection.onHover((params) => {
-  logger.info(`Hover Requested | ${params.textDocument.uri}`);
-  return null
-})
+    if (N[p] || !doc.targetFramework) return;
 
-connection.onCodeAction((params) => {
-  logger.info(`Code Action Requested | ${params.textDocument.uri}`)
-  return null
-})
-
-connection.onCompletion((params) => {
-  logger.info(`Completion Requested | ${params.textDocument.uri}`);
-  return null;
+    nuget.getPackageMetadata(p, doc.targetFramework.value, logger)
+      .then(x => { if (x) N[p] = x });
+  });
 });
 
-connection.onDefinition((params) => {
-  logger.info(`Go to Definition Requested | ${params.textDocument.uri}`);
-  return null;
+documents.onDidChangeContent((event) => {
+  logger.info(`Document Changed | %docUri`, event.document.uri);
+  const doc = lex.initializeCsProj(event.document.getText(), event.document.uri, logger);
+  D[event.document.uri] = doc;
+
+  doc.packageReferences.forEach(x => {
+    const p = x.packageName.value;
+
+    if (N[p] || !doc.targetFramework) return;
+
+    nuget.getPackageMetadata(p, doc.targetFramework.value, logger)
+      .then(x => { if (x) N[p] = x });
+  });
+});
+
+documents.onDidClose((event) => {
+  logger.info(`Document Closed | %docUri`, event.document.uri);
+  delete D[event.document.uri];
+});
+
+connection.onHover((event) => {
+  logger.info(`Hover Requested | %docUri`, event.textDocument.uri);
+  return lsp.provideHover(D[event.textDocument.uri], event.position, N, logger);
+});
+
+connection.onCodeAction((event) => {
+  logger.info(`Code Action Requested | %docUri`, event.textDocument.uri)
+  return undefined;
+});
+
+connection.onCompletion((event) => {
+  logger.info(`Completion Requested | %docUri`, event.textDocument.uri);
+  lsp.provideCodeCompletion(D[event.textDocument.uri], event.position, logger);
+  return undefined;
+});
+
+//connection.sendDiagnostics()
+
+connection.onDefinition((event) => {
+  logger.info(`Go to Definition Requested | %docUri`, event.textDocument.uri);
+  return undefined;
 });
 
 documents.listen(connection);
