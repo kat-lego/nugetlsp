@@ -6,7 +6,8 @@
   "scripts": {
     "test": "jest",
     "build": "tsc",
-    "remove": "npm remove nugetlsp -g"
+    "remove": "npm remove nugetlsp -g",
+    "watch": "tsc --watch"
   },
   "repository": {
     "type": "git",
