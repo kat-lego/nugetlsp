@@ -1,6 +1,6 @@
 import * as winston from "winston"
-import * as nuget from "../src/nuget-provider"
-import { NugetDependencyPackage, NugetPackageVersion } from "../src/models";
+import * as nuget from "./nuget"
+import { PackageDependancy, PackageVersion } from "../models/packagemeta";
 
 const logger = winston.createLogger({
   level: 'info',
@@ -28,20 +28,19 @@ describe("nuget provider tests", () => {
         version: "13.0.3",
         tags: ["json"],
         description: "Json.NET is a popular high-performance JSON framework for .NET",
-        dependencies: [] as Array<NugetDependencyPackage>
-      } as NugetPackageVersion);
+        dependencies: [] as Array<PackageDependancy>
+      } as PackageVersion);
 
       expect(res.versions[80]).toEqual({
         authors: "James Newton-King",
         version: "3.5.8",
         tags: [""],
         description: "Json.NET is a popular high-performance JSON framework for .NET",
-        dependencies: [] as Array<NugetDependencyPackage>
-      } as NugetPackageVersion);
+        dependencies: [] as Array<PackageDependancy>
+      } as PackageVersion);
 
       expect(res.versions.length).toBe(81);
     }
-
   })
 
   it(`should autocomplete for newtonsoft`, async () => {

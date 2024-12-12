@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import winston from "winston";
 import os from 'os';
 import path from 'path';
@@ -8,10 +10,11 @@ import {
   TextDocumentSyncKind
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { CSProjectFileSpec, NugetPackageMetaData } from "./models";
-import * as lex from "./csproj-lexer";
-import * as lsp from "./lsp-provider";
-import * as nuget from "./nuget-provider";
+import * as lex from "./lexer/lexer";
+//import * as lsp from "./lsp/lsp";
+import * as nuget from "./nuget/nuget";
+import { CSProjectFileSpec } from "./models/csprojdoc";
+import { PackageMetaData } from "./models/packagemeta";
 
 const appName = 'nugetlsp';
 const tmpdir = path.join(os.tmpdir(), appName);
@@ -30,8 +33,8 @@ const logger = winston.createLogger({
 
 const connection = createConnection(ProposedFeatures.all);
 const documents = new TextDocuments(TextDocument);
-const D = {} as Record<string, CSProjectFileSpec>
-const N = {} as Record<string, NugetPackageMetaData>
+const D: Record<string, CSProjectFileSpec> = {};
+const N: Record<string, PackageMetaData> = {};
 
 connection.onInitialize(() => {
 
@@ -65,7 +68,7 @@ documents.onDidOpen((event) => {
   D[event.document.uri] = doc;
 
   doc.packageReferences.forEach(x => {
-    const p = x.packageName.value;
+    const p = x.packageNameToken.value;
 
     if (N[p] || !doc.targetFramework) return;
 
@@ -80,7 +83,7 @@ documents.onDidChangeContent((event) => {
   D[event.document.uri] = doc;
 
   doc.packageReferences.forEach(x => {
-    const p = x.packageName.value;
+    const p = x.packageNameToken.value;
 
     if (N[p] || !doc.targetFramework) return;
 
@@ -96,7 +99,8 @@ documents.onDidClose((event) => {
 
 connection.onHover((event) => {
   logger.info(`Hover Requested | %docUri`, event.textDocument.uri);
-  return lsp.provideHover(D[event.textDocument.uri], event.position, N, logger);
+  return undefined;
+  //return lsp.provideHover(D[event.textDocument.uri], event.position, N, logger);
 });
 
 connection.onCodeAction((event) => {
@@ -106,7 +110,7 @@ connection.onCodeAction((event) => {
 
 connection.onCompletion((event) => {
   logger.info(`Completion Requested | %docUri`, event.textDocument.uri);
-  lsp.provideCodeCompletion(D[event.textDocument.uri], event.position, logger);
+  //lsp.provideCodeCompletion(D[event.textDocument.uri], event.position, logger);
   return undefined;
 });
 

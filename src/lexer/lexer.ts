@@ -1,8 +1,8 @@
-import { CSProjectFileSpec, PackageReference, ProjectReference, Token } from "./models";
 import Parser, { SyntaxNode } from "tree-sitter";
 import CsProjLang from "tree-sitter-csproj"
 import { Range } from "vscode-languageserver";
 import winston from "winston";
+import { CSProjectFileSpec, PackageReference, ProjectReference, Token } from "../models/csprojdoc";
 
 const parser = new Parser();
 
@@ -44,8 +44,7 @@ function getTargetFrameworkNode(treeNode: SyntaxNode, logger: winston.Logger): T
 function getPackageReferences(treeNode: SyntaxNode, logger: winston.Logger)
   : Array<PackageReference> {
 
-  const queryText = `
-  (package_reference_openclose
+  const queryText = `(package_reference_openclose
     (package_reference_tag_name)
     (package_reference_include_attribute (attribute_value) @prn)
     (package_reference_version_attribute (attribute_value) @prv)) @pr`;
@@ -54,6 +53,7 @@ function getPackageReferences(treeNode: SyntaxNode, logger: winston.Logger)
   const matches = query.matches(treeNode);
 
   const packages = matches.map(m => {
+
     const pkg = {
     } as PackageReference;
 
@@ -64,14 +64,14 @@ function getPackageReferences(treeNode: SyntaxNode, logger: winston.Logger)
       }
 
       if (c.name === 'prv') {
-        pkg.packageVersion = {
+        pkg.packageVersionToken = {
           value: c.node.text.replace(/["]+/g, ''),
           range: getRange(c.node)
         };
       }
 
       if (c.name === 'prn') {
-        pkg.packageName = {
+        pkg.packageNameToken = {
           value: c.node.text.replace(/["]+/g, ''),
           range: getRange(c.node)
         }
@@ -90,22 +90,22 @@ function getPackageReferences(treeNode: SyntaxNode, logger: winston.Logger)
 function getProjectReferences(treeNode: SyntaxNode, logger: winston.Logger)
   : Array<ProjectReference> {
 
-  const queryText = `
-  (project_reference_openclose
-    (project_reference_tag_name)
-    (project_reference_include_attribute (attribute_value) @prn))`;
+  const queryText =
+    `(project_reference_openclose
+      (project_reference_tag_name)
+      (project_reference_include_attribute (attribute_value) @prn))`;
 
   const query = new Parser.Query(CsProjLang, queryText);
   const captures = query.captures(treeNode);
 
-  const projects = captures.map(c => {
-    return {
-      path: {
+  const projects = captures.map((c): ProjectReference => (
+    {
+      pathToken: {
         value: c.node.text.replace(/["]+/g, ''),
         range: getRange(c.node)
-      }
-    } as ProjectReference;
-  })
+      },
+    }
+  ))
 
   if (!projects || projects.length == 0) {
     logger.warn("No projects matched")
@@ -118,6 +118,6 @@ function getRange(n: SyntaxNode): Range {
   return {
     start: { line: n.startPosition.row, character: n.startPosition.column },
     end: { line: n.endPosition.row, character: n.endPosition.column }
-  } as Range
+  }
 }
 

@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "test": "jest",
-    "build": "tsc"
+    "build": "tsc",
+    "remove": "npm remove nugetlsp -g"
   },
   "repository": {
     "type": "git",
@@ -36,5 +37,8 @@
     "ts-jest": "^29.2.4",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.4"
+  },
+  "bin": {
+    "nugetlsp": "dist/index.js"
   }
 }

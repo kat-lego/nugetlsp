@@ -1,13 +1,12 @@
 import axios, { AxiosResponse } from "axios";
-import { NugetPackageMetaData, NugetPackageVersion } from "./models";
 import winston from 'winston'
-
+import { PackageMetaData, PackageVersion } from "../models/packagemeta";
 
 export async function getPackageMetadata(
   packageName: string,
   targetFramework: string,
   logger: winston.Logger)
-  : Promise<NugetPackageMetaData | undefined> {
+  : Promise<PackageMetaData | undefined> {
 
   logger.info(`Getting Package Metadata for ${packageName}`)
 
@@ -22,7 +21,7 @@ sources ${JSON.stringify(feeds)}`)
     return undefined;
   }
 
-  const nugPackageMetadata: NugetPackageMetaData = {
+  const nugPackageMetadata: PackageMetaData = {
     packageName: packageName,
     versions: []
   };
@@ -41,16 +40,20 @@ sources ${JSON.stringify(feeds)}`)
         return x.targetFramework.toLowerCase() == targetFramework.toLowerCase()
       })?.dependencies ?? []
 
-      nugPackageMetadata.versions.push({
+      logger.info(JSON.stringify(item.catalogEntry))
+
+      const version: PackageVersion = {
         authors: item.catalogEntry.authors,
         version: item.catalogEntry.version,
         description: item.catalogEntry.description,
         tags: item.catalogEntry.tags,
         dependencies: deps.filter(x => x["@type"] === "PackageDependency").map(x => {
           return { packageName: x.id, versionRange: x.range }
-        })
+        }),
+        vulnerabilities: []
+      }
 
-      } as NugetPackageVersion);
+      nugPackageMetadata.versions.push(version);
 
     }
   }
