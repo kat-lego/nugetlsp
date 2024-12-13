@@ -132,6 +132,44 @@ describe("csproj lexer tests", () => {
     })
   })
 
+  it("should parse package references with empty values", () => {
+
+    const doc =
+      `<Project Sdk="Microsoft.NET.Sdk">
+        <ItemGroup>
+          <PackageReference Include="" Version="" />
+        </ItemGroup>
+      </Project>`
+
+    const docSpec = lexer.initializeCsProj(doc, "testdoc", logger);
+    expect(docSpec).toEqual({
+      uri: "testdoc",
+      targetFramework: undefined,
+      packageReferences: [
+        {
+          packageNameToken: {
+            value: "",
+            range: {
+              start: { line: 2, character: 36 },
+              end: { line: 2, character: 38 },
+            }
+          },
+          packageVersionToken: {
+            value: "",
+            range: {
+              start: { line: 2, character: 47 },
+              end: { line: 2, character: 49 },
+            }
+          },
+          range: {
+            start: { line: 2, character: 10 },
+            end: { line: 2, character: 52 },
+          }
+        }
+      ],
+      projectReferences: [],
+    })
+  })
   it("should parse project references", () => {
     const doc = `
       <Project Sdk="Microsoft.NET.Sdk">

@@ -54,6 +54,7 @@ connection.onInitialize(() => {
       hoverProvider: true,
       completionProvider: {},
       declarationProvider: true,
+      definitionProvider: true,
     }
   };
 });
@@ -107,17 +108,16 @@ connection.onCodeAction((event) => {
   return undefined;
 });
 
-connection.onCompletion((event) => {
+connection.onCompletion(async (event) => {
   logger.info(`Completion Requested | %docUri`, event.textDocument.uri);
-  //lsp.provideCodeCompletion(D[event.textDocument.uri], event.position, logger);
-  return undefined;
+  return await lsp.provideCodeCompletion(D[event.textDocument.uri], event.position, logger);
 });
 
 //connection.sendDiagnostics()
 
 connection.onDefinition((event) => {
   logger.info(`Go to Definition Requested | %docUri`, event.textDocument.uri);
-  return undefined;
+  return lsp.provideGoToDefinition(D[event.textDocument.uri], event.position, logger);
 });
 
 documents.listen(connection);

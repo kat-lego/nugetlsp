@@ -58,4 +58,9 @@ describe("nuget provider tests", () => {
     expect(res).toContain("Newtonsoft.Json")
   })
 
+  it(`should return empty autocompletion for empty string`, async () => {
+    let res = await nuget.autoCompleteSearch("", logger);
+    expect(res.length).toBe(0);
+  })
+
 });

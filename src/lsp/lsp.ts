@@ -1,15 +1,17 @@
 import {
-  //CompletionItem,
-  //CompletionItemKind,
+  CompletionItem,
+  CompletionItemKind,
+  Definition,
   Hover,
+  InsertTextFormat,
   Position,
   Range,
-  //Definition,
 } from "vscode-languageserver/node";
 import winston from 'winston'
-//import path from "path";
 import { CSProjectFileSpec } from "../models/csprojdoc";
+import * as nuget from "../nuget/nuget";
 import { PackageMetaData, PackageVersion, SeverityLanguage } from "../models/packagemeta";
+import path from "path";
 
 export function provideHover(
   doc: CSProjectFileSpec,
@@ -39,7 +41,8 @@ function packageReferenceHoverProvider(
   const metaDataVersions = pkgM[pkg?.packageNameToken.value ?? ""]?.versions ?? []
   const pkgv = metaDataVersions.find(v => v.version === pkg?.packageVersionToken.value);
 
-  logger.info(`[PACKAGE_REFERENCE_HOVER_PROVIDER | ${doc.uri}: ${pos.line}, ${pos.character}] At package ${pkg?.packageNameToken.value ?? "<undefined>"} at `)
+  logger.info(`[PACKAGE_REFERENCE_HOVER_PROVIDER | doc: ${doc.uri}, line: ${pos.line},`
+    + `char: ${pos.character}] At package ${pkg?.packageNameToken.value ?? "<undefined>"} at `)
 
   if (!pkg || !pkgv) return undefined;
 
@@ -51,58 +54,78 @@ function packageReferenceHoverProvider(
   };
 }
 
+export async function provideCodeCompletion(
+  doc: CSProjectFileSpec,
+  pos: Position,
+  logger: winston.Logger
+): Promise<CompletionItem[]> {
 
-//export async function provideCodeCompletion(
-//  doc: CSProjectFileSpec,
-//  pos: Position,
-//  logger: winston.Logger
-//): Promise<CompletionItem[]> {
-//
-//  logger.info(`providing code completion at line ${pos.line}, char ${pos.character}`);
-//
-//  const items: CompletionItem[] = []
-//
-//  const pkg = doc.packageReferences.find(x => isInRange(x.range, pos));
-//  if (pkg) {
-//    const nugetSearch = await nuget.autoCompleteSearch(pkg.packageName.value, logger);
-//
-//    nugetSearch.forEach(n => {
-//      items.push({
-//        label: n,
-//        detail: 'search package',
-//        documentation: 'nuget package name',
-//        kind: CompletionItemKind.Text,
-//      })
-//    })
-//  }
-//
-//  return items;
-//}
+  logger.info(`[PROVIDE_CODE_COMPLETION | doc: ${doc.uri}, line: ${pos.line}, char: ${pos.character}]`);
 
-//export function provideGoToDefinition(
-//  doc: CSProjectFileSpec,
-//  pos: Position,
-//  logger: winston.Logger): Definition | undefined {
-//
-//  logger.info(`providing go to definition at line ${pos.line}, char ${pos.character}`);
-//
-//  const prj = doc.projectReferences.find(x => isInRange(x.range, pos));
-//  if (prj && prj.path) {
-//    let gotoUri = prj.path.value.replace(/\\/g, '');
-//
-//    if (!path.isAbsolute(gotoUri)) {
-//      const currDir = doc.uri.replace('file://', '');
-//      gotoUri = path.normalize(path.resolve(currDir, gotoUri));
-//    }
-//
-//    return {
-//      uri: `file://${gotoUri}`,
-//      range: Range.create(0, 0, 0, 0),
-//    }
-//  }
-//
-//  return undefined;
-//}
+  const items: CompletionItem[] = []
+
+  const pkg = doc.packageReferences.find(x => isInRange(x.range, pos));
+  if (pkg) {
+    const nugetSearch = await nuget.autoCompleteSearch(pkg.packageNameToken.value, logger);
+
+    logger.info(`[PROVIDE_CODE_COMPLETION | doc: ${doc.uri}, line: ${pos.line}, char: ${pos.character}]`);
+
+    nugetSearch.forEach(n => {
+      items.push({
+        label: n,
+        insertText: n,
+        detail: 'search package',
+        documentation: 'nuget package name',
+        kind: CompletionItemKind.Text,
+      })
+    })
+  }
+
+  items.push({
+    label: 'PackageReference',
+    detail: 'Package reference',
+    documentation: 'Add a package reference',
+    kind: CompletionItemKind.Text,
+    insertTextFormat: InsertTextFormat.Snippet,
+    insertText: '<PackageReference Include="${1:package}" Version="" />'
+  })
+
+  items.push({
+    label: 'ProjectReference',
+    detail: 'Project Reference',
+    documentation: 'Add a project reference',
+    kind: CompletionItemKind.Text,
+    insertTextFormat: InsertTextFormat.Snippet,
+    insertText: '<ProjectReference Include="${1:project}" />'
+  })
+
+  return items;
+}
+
+export function provideGoToDefinition(
+  doc: CSProjectFileSpec,
+  pos: Position,
+  logger: winston.Logger): Definition | undefined {
+
+  logger.info(`providing go to definition at line ${pos.line}, char ${pos.character}`);
+
+  const prj = doc.projectReferences.find(x => isInRange(x.pathToken.range, pos));
+  if (prj) {
+    let gotoUri = prj.pathToken.value.replace(/\\/g, '');
+
+    if (!path.isAbsolute(gotoUri)) {
+      const currDir = path.dirname(doc.uri.replace('file://', ''));
+      gotoUri = path.normalize(path.resolve(currDir, gotoUri));
+    }
+
+    return {
+      uri: `file://${gotoUri}`,
+      range: Range.create(0, 0, 0, 0),
+    }
+  }
+
+  return undefined;
+}
 
 function isInRange(range: Range, pos: Position): boolean {
   return range.start.line <= pos.line && pos.line <= range.end.line

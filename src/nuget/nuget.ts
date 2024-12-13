@@ -9,6 +9,8 @@ export async function getPackageMetadata(packageName: string,
 
   logger.info(`[GET_PACKAGE_METADATA | ${packageName} ]`);
 
+  if (!packageName) return undefined;
+
   const feeds = ["https://api.nuget.org"];
   const baseUrls = await getResourceUrls('RegistrationsBaseUrl/3.6.0', feeds, logger);
 
@@ -29,17 +31,17 @@ sources feeds`)
   };
 
   const nugetRes = response.data as NugetRegistrationResponse;
-  const pages = nugetRes.items;
+  const pages = nugetRes?.items ?? [];
 
   for (let p of pages) {
-    for (let item of p.items) {
+    for (let item of p?.items ?? []) {
       if (item["@type"] !== "Package" || item.catalogEntry.id.toLowerCase() === "") {
         continue;
       }
 
       const dependencyGroups = item.catalogEntry.dependencyGroups ?? []
       const deps = dependencyGroups.find(x => {
-        return x.targetFramework.toLowerCase() == targetFramework.toLowerCase()
+        return x?.targetFramework?.toLowerCase() == targetFramework.toLowerCase()
       })?.dependencies ?? []
 
       const version: PackageVersion = {
@@ -69,6 +71,8 @@ export async function autoCompleteSearch(packageName: string, logger: winston.Lo
   : Promise<Array<string>> {
 
   logger.info(`Auto complete search for package ${packageName}`)
+
+  if (!packageName) return [];
 
   const feeds = ["https://api.nuget.org"];
   const baseUrls = await getResourceUrls('SearchAutocompleteService/3.5.0', feeds, logger);

@@ -9,6 +9,9 @@
     "remove": "npm remove nugetlsp -g",
     "watch": "tsc --watch"
   },
+  "files": [
+    "dist/**/*"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/kat-lego/nugetlsp.git"
