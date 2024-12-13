@@ -11,7 +11,7 @@ import {
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import * as lex from "./lexer/lexer";
-//import * as lsp from "./lsp/lsp";
+import * as lsp from "./lsp/lsp";
 import * as nuget from "./nuget/nuget";
 import { CSProjectFileSpec } from "./models/csprojdoc";
 import { PackageMetaData } from "./models/packagemeta";
@@ -99,8 +99,7 @@ documents.onDidClose((event) => {
 
 connection.onHover((event) => {
   logger.info(`Hover Requested | %docUri`, event.textDocument.uri);
-  return undefined;
-  //return lsp.provideHover(D[event.textDocument.uri], event.position, N, logger);
+  return lsp.provideHover(D[event.textDocument.uri], event.position, N, logger);
 });
 
 connection.onCodeAction((event) => {

@@ -1,58 +1,57 @@
-//import {
-//  CompletionItem,
-//  CompletionItemKind,
-//  Hover,
-//  Position,
-//  Range,
-//  Definition,
-//} from "vscode-languageserver/node";
-//import winston from 'winston'
-//import { CSProjectFileSpec, NugetPackageMetaData, NugetPackageVersion } from "./models";
-//import * as nuget from "./nuget-provider";
+import {
+  //CompletionItem,
+  //CompletionItemKind,
+  Hover,
+  Position,
+  Range,
+  //Definition,
+} from "vscode-languageserver/node";
+import winston from 'winston'
 //import path from "path";
-//
-//export function provideHover(
-//  doc: CSProjectFileSpec,
-//  pos: Position,
-//  pkgM: Record<string, NugetPackageMetaData>,
-//  logger: winston.Logger
-//): Hover | undefined {
-//
-//  const providers = [providerPackageReferenceHover];
-//
-//  for (let p of providers) {
-//    const hover = p(doc, pos, pkgM, logger);
-//    if (hover) return hover;
-//  }
-//
-//  return undefined;
-//}
-//
-//function providerPackageReferenceHover(
-//  doc: CSProjectFileSpec,
-//  pos: Position,
-//  pkgM: Record<string, NugetPackageMetaData>,
-//  logger: winston.Logger
-//): Hover | undefined {
-//
-//  const pkg = doc.packageReferences.find(x => isInRange(x.range, pos));
-//  const metaDataVersions = pkgM[pkg?.packageName.value ?? ""]?.versions ?? []
-//  const pkgv = metaDataVersions.find(v => v.version === pkg?.packageVersion.value);
-//
-//  logger.info(`Found package reference ${pkg?.packageName.value ?? "<undefined>"} at ` +
-//    `${JSON.stringify(pos)} in document doc ${doc.uri}`)
-//
-//  if (!pkg || !pkgv) return undefined;
-//
-//  return {
-//    contents: {
-//      kind: 'markdown',
-//      value: getPackageHoverMessage(pkg.packageName.value, pkgv)
-//    }
-//  };
-//}
-//
-//
+import { CSProjectFileSpec } from "../models/csprojdoc";
+import { PackageMetaData, PackageVersion, SeverityLanguage } from "../models/packagemeta";
+
+export function provideHover(
+  doc: CSProjectFileSpec,
+  pos: Position,
+  pkgM: Record<string, PackageMetaData>,
+  logger: winston.Logger
+): Hover | undefined {
+
+  const providers = [packageReferenceHoverProvider];
+
+  for (let p of providers) {
+    const hover = p(doc, pos, pkgM, logger);
+    if (hover) return hover;
+  }
+
+  return undefined;
+}
+
+function packageReferenceHoverProvider(
+  doc: CSProjectFileSpec,
+  pos: Position,
+  pkgM: Record<string, PackageMetaData>,
+  logger: winston.Logger
+): Hover | undefined {
+
+  const pkg = doc.packageReferences.find(x => isInRange(x.range, pos));
+  const metaDataVersions = pkgM[pkg?.packageNameToken.value ?? ""]?.versions ?? []
+  const pkgv = metaDataVersions.find(v => v.version === pkg?.packageVersionToken.value);
+
+  logger.info(`[PACKAGE_REFERENCE_HOVER_PROVIDER | ${doc.uri}: ${pos.line}, ${pos.character}] At package ${pkg?.packageNameToken.value ?? "<undefined>"} at `)
+
+  if (!pkg || !pkgv) return undefined;
+
+  return {
+    contents: {
+      kind: 'markdown',
+      value: getPackageHoverMessage(pkg.packageNameToken.value, pkgv)
+    }
+  };
+}
+
+
 //export async function provideCodeCompletion(
 //  doc: CSProjectFileSpec,
 //  pos: Position,
@@ -79,7 +78,7 @@
 //
 //  return items;
 //}
-//
+
 //export function provideGoToDefinition(
 //  doc: CSProjectFileSpec,
 //  pos: Position,
@@ -104,27 +103,29 @@
 //
 //  return undefined;
 //}
-//
-//function isInRange(range: Range, pos: Position): boolean {
-//  return range.start.line <= pos.line && pos.line <= range.end.line
-//    && range.start.character <= pos.character && pos.character <= range.end.character;
-//}
-//
-//function getPackageHoverMessage(packageId: string, meta: NugetPackageVersion): string {
-//
-//  let message = `### ${packageId}
-//  **Description**: ${meta.description}
-//  **Version**: ${meta.version}
-//  **Authors**: ${meta.authors}
-//  **Tags**: ${meta.tags.join(' |')}`
-//
-//  if (meta.vulnerabilities && meta.vulnerabilities.length > 0) {
-//    message += '\n**Vulnerabilities**:\n'
-//    meta.vulnerabilities.forEach(v => {
-//      message += `  - **Severity**: ${v.serverity}\n`
-//      message += `  - **Advisory Url**: ${v.advisoryUrl}`
-//    })
-//  }
-//
-//  return message;
-//}
+
+function isInRange(range: Range, pos: Position): boolean {
+  return range.start.line <= pos.line && pos.line <= range.end.line
+    && range.start.character <= pos.character && pos.character <= range.end.character;
+}
+
+function getPackageHoverMessage(packageId: string, meta: PackageVersion): string {
+
+  let message = `
+### ${packageId}
+  **Description**: ${meta.description}
+  **Version**: ${meta.version}
+  **Authors**: ${meta.authors}
+  **Tags**: ${meta.tags.join(' | ')}`
+
+  if (meta.vulnerabilities && meta.vulnerabilities.length > 0) {
+    message += '\n\n  **Vulnerabilities**:\n'
+    meta.vulnerabilities.forEach(v => {
+      message += `    - **Severity**: ${SeverityLanguage[v.severity]}\n`
+      message += `    - **Advisory Url**: ${v.advisoryUrl}`
+    })
+  }
+
+  return message;
+}
+

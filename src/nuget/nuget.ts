@@ -1,23 +1,25 @@
 import axios, { AxiosResponse } from "axios";
 import winston from 'winston'
-import { PackageMetaData, PackageVersion } from "../models/packagemeta";
+import { PackageMetaData, PackageVersion, Vulnerability } from "../models/packagemeta";
 
-export async function getPackageMetadata(
-  packageName: string,
+export async function getPackageMetadata(packageName: string,
   targetFramework: string,
   logger: winston.Logger)
   : Promise<PackageMetaData | undefined> {
 
-  logger.info(`Getting Package Metadata for ${packageName}`)
+  logger.info(`[GET_PACKAGE_METADATA | ${packageName} ]`);
 
   const feeds = ["https://api.nuget.org"];
   const baseUrls = await getResourceUrls('RegistrationsBaseUrl/3.6.0', feeds, logger);
 
+  logger.info(`[GET_PACKAGE_METADATA | ${packageName} ] Resources: ${JSON.stringify(baseUrls, null, 2)}`);
+
   const urls = baseUrls.map(u => `${u}${packageName.toLowerCase()}/index.json`);
+
   const response = await getFirstSuccessful(urls);
   if (!response) {
-    logger.error(`[GetPackageMetadata] Unable to find package named ${packageName} from
-sources ${JSON.stringify(feeds)}`)
+    logger.error(`[GET_PACKAGE_METADATA | ${packageName} ] Unable to find package named ${packageName} from
+sources feeds`)
     return undefined;
   }
 
@@ -40,8 +42,6 @@ sources ${JSON.stringify(feeds)}`)
         return x.targetFramework.toLowerCase() == targetFramework.toLowerCase()
       })?.dependencies ?? []
 
-      logger.info(JSON.stringify(item.catalogEntry))
-
       const version: PackageVersion = {
         authors: item.catalogEntry.authors,
         version: item.catalogEntry.version,
@@ -50,7 +50,9 @@ sources ${JSON.stringify(feeds)}`)
         dependencies: deps.filter(x => x["@type"] === "PackageDependency").map(x => {
           return { packageName: x.id, versionRange: x.range }
         }),
-        vulnerabilities: []
+        vulnerabilities: item.catalogEntry.vulnerabilities?.map(v => {
+          return { advisoryUrl: v.advisoryUrl, severity: v.severity }
+        }) ?? []
       }
 
       nugPackageMetadata.versions.push(version);
@@ -92,32 +94,33 @@ async function getResourceUrls(
   nugetFeeds: Array<string>,
   logger: winston.Logger): Promise<Array<string>> {
 
+  logger.info(`[GET_RESOURCE_URLS | ${resource}]`)
+
   const responsePromiseResults = await Promise.allSettled(nugetFeeds.map(x => {
-    logger.info(`[GetResourceUrls] Get request - ${x}/v3/index.json`);
+    logger.info(`[GET_RESOURCE_URLS | ${resource}] Requesting resource from feed ${x}/v3/index.json`);
     return axios.get(`${x}/v3/index.json`, { validateStatus: () => true });
   }));
 
   const urls = responsePromiseResults
     .map((x, i) => {
       if (x.status !== "fulfilled") {
-        logger.error(`[GetResourceUrls] Promise for feed ${nugetFeeds[i]} was rejected, for reason ${x.reason}`);
+        logger.error(`[GET_RESOURCE_URLS | ${resource}] Promise for feed ${nugetFeeds[i]} was rejected, for reason ${x.reason}`);
         return undefined
       }
 
       const res = x.value;
       if (res.status !== 200) {
-        logger.error(`[GetResourceUrls] Failed to get response from ${nugetFeeds[i]}: ${res.status} `);
+        logger.error(`[GET_RESOURCE_URLS | ${resource}] Failed to get response from ${nugetFeeds[i]}: ${res.status} `);
         return undefined
       }
 
-      logger.info(`[GetResourceUrls] Get for feed ${nugetFeeds[i]} was successful`)
+      logger.info(`[GET_RESOURCE_URLS | ${resource}] Recieved resource from ${nugetFeeds[i]}`)
       const respResources = res.data.resources as Array<{ '@type': string, '@id': string }>
       const registrationResource = respResources.find(r => r['@type'] === resource);
       return registrationResource?.["@id"]
 
     }).filter(x => x !== undefined);
 
-  logger.info(`[GetResourceUrls] Returned with: ${JSON.stringify(urls)}`)
   return urls;
 };
 
@@ -148,6 +151,7 @@ interface NugetcatalogItem {
 }
 
 interface NugetCatalogEntry {
+  vulnerabilities: Array<Vulnerability>;
   authors: string
   description: string
   summary: string

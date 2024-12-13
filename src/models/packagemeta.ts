@@ -18,7 +18,7 @@ export interface PackageDependancy {
 }
 
 export interface Vulnerability {
-  serverity: string
+  severity: string
   advisoryUrl: string
 }
 

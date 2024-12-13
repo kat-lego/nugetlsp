@@ -28,7 +28,8 @@ describe("nuget provider tests", () => {
         version: "13.0.3",
         tags: ["json"],
         description: "Json.NET is a popular high-performance JSON framework for .NET",
-        dependencies: [] as Array<PackageDependancy>
+        dependencies: [] as Array<PackageDependancy>,
+        vulnerabilities: []
       } as PackageVersion);
 
       expect(res.versions[80]).toEqual({
@@ -36,7 +37,13 @@ describe("nuget provider tests", () => {
         version: "3.5.8",
         tags: [""],
         description: "Json.NET is a popular high-performance JSON framework for .NET",
-        dependencies: [] as Array<PackageDependancy>
+        dependencies: [] as Array<PackageDependancy>,
+        vulnerabilities: [
+          {
+            advisoryUrl: "https://github.com/advisories/GHSA-5crp-9r3c-p9vr",
+            severity: "2"
+          }
+        ]
       } as PackageVersion);
 
       expect(res.versions.length).toBe(81);
