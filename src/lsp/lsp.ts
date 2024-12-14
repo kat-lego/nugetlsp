@@ -214,7 +214,7 @@ export function provideDiagnostics(
   logger.info(`[PROVIDE_DIAGNOSTICS | ${doc.uri}]`);
 
   const vulnerabilities = doc.packageReferences.filter(p => {
-    const packageVersions = N[p.packageNameToken.value].versions;
+    const packageVersions = N[p.packageNameToken.value]?.versions;
     if (!packageVersions) return false;
 
     const usedPackageVersion = packageVersions.find(v =>

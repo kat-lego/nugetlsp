@@ -77,8 +77,10 @@ documents.onDidOpen((event) => {
       .then(x => { if (x) N[p] = x });
   });
 
-  var diagnostics = lsp.provideDiagnostics(D[event.document.uri], N, logger);
-  connection.sendDiagnostics(diagnostics)
+  setTimeout(() => {
+    const diagnostics = lsp.provideDiagnostics(D[event.document.uri], N, logger);
+    connection.sendDiagnostics(diagnostics)
+  }, 2000)
 });
 
 documents.onDidChangeContent((event) => {
@@ -94,6 +96,11 @@ documents.onDidChangeContent((event) => {
     nuget.getPackageMetadata(p, doc.targetFramework.value, logger)
       .then(x => { if (x) N[p] = x });
   });
+
+  setTimeout(() => {
+    const diagnostics = lsp.provideDiagnostics(D[event.document.uri], N, logger);
+    connection.sendDiagnostics(diagnostics)
+  }, 2000)
 
 });
 
