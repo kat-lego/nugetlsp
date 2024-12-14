@@ -76,6 +76,9 @@ documents.onDidOpen((event) => {
     nuget.getPackageMetadata(p, doc.targetFramework.value, logger)
       .then(x => { if (x) N[p] = x });
   });
+
+  var diagnostics = lsp.provideDiagnostics(D[event.document.uri], N, logger);
+  connection.sendDiagnostics(diagnostics)
 });
 
 documents.onDidChangeContent((event) => {
@@ -91,6 +94,7 @@ documents.onDidChangeContent((event) => {
     nuget.getPackageMetadata(p, doc.targetFramework.value, logger)
       .then(x => { if (x) N[p] = x });
   });
+
 });
 
 documents.onDidClose((event) => {
@@ -117,8 +121,6 @@ connection.onDefinition((event) => {
   logger.info(`Go to Definition Requested | %docUri`, event.textDocument.uri);
   return lsp.provideGoToDefinition(D[event.textDocument.uri], event.position, logger);
 });
-
-//connection.sendDiagnostics()
 
 documents.listen(connection);
 connection.listen();

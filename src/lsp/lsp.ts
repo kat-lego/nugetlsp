@@ -4,9 +4,12 @@ import {
   CompletionItem,
   CompletionItemKind,
   Definition,
+  Diagnostic,
+  DiagnosticSeverity,
   Hover,
   InsertTextFormat,
   Position,
+  PublishDiagnosticsParams,
   Range,
   TextEdit,
 } from "vscode-languageserver/node";
@@ -201,5 +204,39 @@ function getPackageHoverMessage(packageId: string, meta: PackageVersion): string
   }
 
   return message;
+}
+
+export function provideDiagnostics(
+  doc: CSProjectFileSpec,
+  N: Record<string, PackageMetaData>,
+  logger: winston.Logger): PublishDiagnosticsParams {
+
+  logger.info(`[PROVIDE_DIAGNOSTICS | ${doc.uri}]`);
+
+  const vulnerabilities = doc.packageReferences.filter(p => {
+    const packageVersions = N[p.packageNameToken.value].versions;
+    if (!packageVersions) return false;
+
+    const usedPackageVersion = packageVersions.find(v =>
+      v.version === p.packageVersionToken.value)
+
+    if (!usedPackageVersion) return false;
+
+    return usedPackageVersion.vulnerabilities.length !== 0;
+  })
+
+  const diagnostics = vulnerabilities.map((p): Diagnostic => {
+    return {
+      range: p.packageVersionToken.range,
+      severity: DiagnosticSeverity.Error,
+      message: `Version ${p.packageVersionToken.value} has vulnerabilities`,
+      source: 'nugetlsp'
+    }
+  })
+
+  return {
+    uri: doc.uri,
+    diagnostics: diagnostics
+  }
 }
 
