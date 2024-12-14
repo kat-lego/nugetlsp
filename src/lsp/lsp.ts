@@ -1,4 +1,6 @@
 import {
+  CodeAction,
+  CodeActionKind,
   CompletionItem,
   CompletionItemKind,
   Definition,
@@ -6,12 +8,14 @@ import {
   InsertTextFormat,
   Position,
   Range,
+  TextEdit,
 } from "vscode-languageserver/node";
 import winston from 'winston'
 import { CSProjectFileSpec } from "../models/csprojdoc";
 import * as nuget from "../nuget/nuget";
 import { PackageMetaData, PackageVersion, SeverityLanguage } from "../models/packagemeta";
 import path from "path";
+import { version } from "os";
 
 export function provideHover(
   doc: CSProjectFileSpec,
@@ -125,6 +129,53 @@ export function provideGoToDefinition(
   }
 
   return undefined;
+}
+
+export function provideCodeActions(
+  doc: CSProjectFileSpec,
+  pos: Position,
+  pkgM: Record<string, PackageMetaData>,
+  logger: winston.Logger
+): CodeAction[] {
+
+
+  const codeActions: CodeAction[] = [];
+
+  const pkg = doc.packageReferences.find(x => isInRange(x.range, pos));
+
+  if (!pkg) {
+    logger.warn(`PROVIDE_CODE_ACTIONS: Not In a package`);
+    return [];
+  }
+
+  const allVersions = pkgM[pkg?.packageNameToken.value ?? ""]?.versions ?? []
+
+  const versions = allVersions.filter(v => {
+    return v.vulnerabilities.length === 0
+  })
+
+  logger.warn(`PROVIDE_CODE_ACTIONS: Providing actions for ${pkg.packageNameToken.value}`);
+
+  versions.slice(0, 15).forEach(v => {
+
+    const edit: TextEdit = {
+      range: pkg.packageVersionToken.range,
+      newText: `"${v.version}"`,
+    };
+
+    codeActions.push({
+      title: `use version ${v.version}`,
+      kind: CodeActionKind.QuickFix,
+      edit: {
+        changes: {
+          [doc.uri]: [edit]
+        }
+      }
+    })
+
+  });
+
+  return codeActions
 }
 
 function isInRange(range: Range, pos: Position): boolean {

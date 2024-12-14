@@ -105,7 +105,7 @@ connection.onHover((event) => {
 
 connection.onCodeAction((event) => {
   logger.info(`Code Action Requested | %docUri`, event.textDocument.uri)
-  return undefined;
+  return lsp.provideCodeActions(D[event.textDocument.uri], event.range.start, N, logger);
 });
 
 connection.onCompletion(async (event) => {
@@ -113,12 +113,12 @@ connection.onCompletion(async (event) => {
   return await lsp.provideCodeCompletion(D[event.textDocument.uri], event.position, logger);
 });
 
-//connection.sendDiagnostics()
-
 connection.onDefinition((event) => {
   logger.info(`Go to Definition Requested | %docUri`, event.textDocument.uri);
   return lsp.provideGoToDefinition(D[event.textDocument.uri], event.position, logger);
 });
+
+//connection.sendDiagnostics()
 
 documents.listen(connection);
 connection.listen();
