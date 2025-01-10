@@ -18,7 +18,6 @@ import { CSProjectFileSpec } from "../models/csprojdoc";
 import * as nuget from "../nuget/nuget";
 import { PackageMetaData, PackageVersion, SeverityLanguage } from "../models/packagemeta";
 import path from "path";
-import { version } from "os";
 
 export function provideHover(
   doc: CSProjectFileSpec,
