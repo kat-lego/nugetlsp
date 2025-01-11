@@ -18,7 +18,7 @@ package vulnerability
 
 Other things Todo:
 - [ ] **cli parsing**: add version help, and version tags to the cli
-- [ ] **github workflows**: add github workflow to publish to npm on tags
+- [x] **github workflows**: add github workflow to publish to npm on tags
 - [ ] **testing**: unit tests on the modules
 
 ## Installing Locally for testing
