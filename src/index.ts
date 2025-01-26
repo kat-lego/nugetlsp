@@ -16,6 +16,12 @@ import * as nuget from "./nuget/nuget";
 import { CSProjectFileSpec } from "./models/csprojdoc";
 import { PackageMetaData } from "./models/packagemeta";
 
+const args = process.argv.slice(2);
+if (args.includes('--version')) {
+  console.log("0.0.4");
+  process.exit(0);
+}
+
 const appName = 'nugetlsp';
 const tmpdir = path.join(os.tmpdir(), appName);
 
@@ -43,7 +49,7 @@ connection.onInitialize(() => {
   return {
     serverInfo: {
       name: `nugetlsp@${os.hostname()}`,
-      version: `0.0.1-beta`
+      version: `0.0.4`
     },
     capabilities: {
       textDocumentSync: {
